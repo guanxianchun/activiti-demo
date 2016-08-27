@@ -69,6 +69,7 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 								.getResourceAsStream("deployments/" + bpmName + ".zip"))).deploy();
 		this.queryWorkFlow();
 		this.startWorkflow();
+		this.createUnFinishedProcessInstanceQuery();
 		this.processTask();
 		this.createFinishedProcessInstanceQuery();
 		System.out.println("-----------------------------");
@@ -95,16 +96,15 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 		System.out.println("------------------------------------------------------");
 		RuntimeService service = processEngine.getRuntimeService();
 		Map<String, Object> variables = new HashMap<String, Object>();
-		variables.put("startTime", "2016-5-3");
-		variables.put("endTime", "2016-5-5");
-		variables.put("applyUser", "test4");
-		System.out.println("start workflow by " + variables.get("applyUser"));
+		variables.put("projectReportId", "2016-5-3");
+		variables.put("userId", "test4");
+		System.out.println("start workflow by " + variables.get("userId"));
 		ProcessInstance instance = service.startProcessInstanceByKey(bpmName, variables);
 		Assert.assertNotNull(instance);
 		System.out.println("user\tproInsId\tdeployId");
-		System.out.println(variables.get("applyUser") + "\t" + instance.getId() + "\tpdid:"
+		System.out.println(variables.get("userId") + "\t" + instance.getId() + "\tpdid:"
 				+ instance.getProcessDefinitionId());
-		this.readWorkflowPicture(instance.getProcessDefinitionId(), instance.getId(), variables.get("applyUser")
+		this.readWorkflowPicture(instance.getProcessDefinitionId(), instance.getId(), variables.get("userId")
 				.toString());
 	}
 
