@@ -36,7 +36,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
-@SuppressWarnings("deprecation")
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:activiti/spring.activiti.xml" })
 @TransactionConfiguration(transactionManager = "transactionManager", defaultRollback = false)
@@ -52,8 +51,30 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 	public void setup() {
 
 	}
-
 	@Test
+	public void runDemo() {
+		//发布工作流
+//		this.deploy();
+		//查询流程信息
+		System.out.println("--------------------查询流程信息---------------------");
+		this.queryWorkFlow();
+		//启动流程
+		System.out.println("--------------------启动流程---------------------");
+		this.startWorkflow();
+		//查询未完成的流程
+		System.out.println("--------------------查询未完成的流程---------------------");
+		this.createUnFinishedProcessInstanceQuery();
+		//流程处理
+		System.out.println("--------------------流程处理---------------------");
+		this.processTask();
+		//查询完成的流程
+		System.out.println("--------------------查询完成的流程---------------------");
+		this.createFinishedProcessInstanceQuery();
+		System.out.println("-----------------------------");
+		this.createUnFinishedProcessInstanceQuery();
+		
+	}
+	
 	public void deploy() {
 		System.out.println("------------------------------------------------------");
 		Assert.assertNotNull(processEngine);
@@ -61,19 +82,9 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 		System.out.println("deploy workflow...");
 		RepositoryService repositoryService = processEngine.getRepositoryService();
 
-		repositoryService
-				.createDeployment()
-				.name(bpmName)
-				.addZipInputStream(
-						new ZipInputStream(this.getClass().getClassLoader()
-								.getResourceAsStream("deployments/" + bpmName + ".zip"))).deploy();
-		this.queryWorkFlow();
-		this.startWorkflow();
-		this.createUnFinishedProcessInstanceQuery();
-		this.processTask();
-		this.createFinishedProcessInstanceQuery();
-		System.out.println("-----------------------------");
-		this.createUnFinishedProcessInstanceQuery();
+		repositoryService.createDeployment().name(bpmName)
+				.addZipInputStream(new ZipInputStream(this.getClass().getClassLoader().getResourceAsStream("deployments/" + bpmName + ".zip"))).deploy();
+		
 	}
 
 	// @Test
@@ -161,10 +172,7 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 
 	private void readWorkflowPicture(String prodefinId, String instanceId, String fileName) {
 		System.out.println("------------------------------------------------------");
-		RepositoryService repositoryService = processEngine.getRepositoryService();
 		RuntimeService runtimeService = processEngine.getRuntimeService();
-		BpmnModel bpmnModel = repositoryService.getBpmnModel(prodefinId);
-		ProcessDefinitionQuery query = repositoryService.createProcessDefinitionQuery();
 		List<ProcessInstance> instances = runtimeService.createProcessInstanceQuery().processDefinitionId(prodefinId)
 				.list();
 		boolean exists = false;
@@ -179,13 +187,11 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 		for (String id : activeActivityIds) {
 			System.out.println(id);
 		}
-		System.out.println(processEngine.getProcessEngineConfiguration().getActivityFontName());
 		InputStream in = this.getDiagram(instanceId);
-//		InputStream in = new DefaultProcessDiagramGenerator().generateDiagram(bpmnModel, "png", activeActivityIds);
 		productImage(in);
 
 	}
-	
+
 	private void productImage(InputStream inputStream) {
 		FileOutputStream out = null;
 		File picture = new File("src/test/java/report_audit" + ".png");
@@ -213,30 +219,30 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 		ProcessDefinitionQuery query = processEngine.getRepositoryService().createProcessDefinitionQuery();
 		query.processDefinitionKey(bpmName);
 		List<ProcessDefinition> list = query.list();
-		for (ProcessDefinition processDefinition :list) {
-			HistoricProcessInstanceQuery finishedQuery = processEngine.getHistoryService().createHistoricProcessInstanceQuery()
-		            .processDefinitionKey(processDefinition.getKey()).finished();
+		for (ProcessDefinition processDefinition : list) {
+			HistoricProcessInstanceQuery finishedQuery = processEngine.getHistoryService()
+					.createHistoricProcessInstanceQuery().processDefinitionKey(processDefinition.getKey()).finished();
 			List<HistoricProcessInstance> historicProcessInstances = finishedQuery.list();
-			for(HistoricProcessInstance instance:historicProcessInstances){
-				System.out.println(instance.getName()+"\t"+instance.getStartUserId());
+			for (HistoricProcessInstance instance : historicProcessInstances) {
+				System.out.println(instance.getName() + "\t" + instance.getStartUserId());
 			}
 		}
-	    
+
 	}
-	
+
 	public void createUnFinishedProcessInstanceQuery() {
 		ProcessDefinitionQuery query = processEngine.getRepositoryService().createProcessDefinitionQuery();
 		query.processDefinitionKey(bpmName);
 		List<ProcessDefinition> list = query.list();
-		for (ProcessDefinition processDefinition :list) {
-			ProcessInstanceQuery unfinishedQuery = processEngine.getRuntimeService().createProcessInstanceQuery().processDefinitionKey(processDefinition.getKey())
-		            .active();
+		for (ProcessDefinition processDefinition : list) {
+			ProcessInstanceQuery unfinishedQuery = processEngine.getRuntimeService().createProcessInstanceQuery()
+					.processDefinitionKey(processDefinition.getKey()).active();
 			List<ProcessInstance> historicProcessInstances = unfinishedQuery.list();
-			for(ProcessInstance instance:historicProcessInstances){
-				System.out.println(instance.getActivityId()+"\t"+instance.getDeploymentId()+"\t"+instance.getProcessInstanceId());
+			for (ProcessInstance instance : historicProcessInstances) {
+				System.out.println(instance.getActivityId() + "\t" + instance.getDeploymentId() + "\t"
+						+ instance.getProcessInstanceId());
 			}
 		}
-		
-	    
+
 	}
 }
