@@ -3,7 +3,7 @@
   <process id="ReportAudit" name="ReportAudit" isExecutable="true">
     <startEvent id="startevent1" name="Start" activiti:initiator="userId">
       <extensionElements>
-        <activiti:formProperty id="project" name="项目上报数据审核" type="string" required="true"></activiti:formProperty>
+        <activiti:formProperty id="projectReportId" name="项目上报ID" type="string" required="true"></activiti:formProperty>
       </extensionElements>
     </startEvent>
     <userTask id="county_leader" name="县领导审批" activiti:assignee="county_leader_audit" activiti:candidateGroups="countyAuditLeader"></userTask>
@@ -11,23 +11,23 @@
     <userTask id="province_leader" name="省厅领导审批" activiti:candidateGroups="provinceAuditLeader"></userTask>
     <endEvent id="endevent1" name="End"></endEvent>
     <sequenceFlow id="flow1" sourceRef="startevent1" targetRef="county_leader"></sequenceFlow>
-    <exclusiveGateway id="countyGateway" name="countyGateway"></exclusiveGateway>
-    <sequenceFlow id="flow5" sourceRef="county_leader" targetRef="countyGateway"></sequenceFlow>
-    <exclusiveGateway id="cityGateway" name="cityGateway"></exclusiveGateway>
-    <sequenceFlow id="flow6" sourceRef="city_leader_audit" targetRef="cityGateway"></sequenceFlow>
-    <exclusiveGateway id="provinceGateway" name="provinceGateway"></exclusiveGateway>
-    <sequenceFlow id="flow7" sourceRef="province_leader" targetRef="provinceGateway"></sequenceFlow>
-    <sequenceFlow id="provinceLeaderAgress" name="同意" sourceRef="provinceGateway" targetRef="endevent1"></sequenceFlow>
-    <sequenceFlow id="cityLeaderAgree" name="同意" sourceRef="cityGateway" targetRef="province_leader"></sequenceFlow>
-    <sequenceFlow id="countyLeaderAgress" name="同意" sourceRef="countyGateway" targetRef="city_leader_audit"></sequenceFlow>
-    <userTask id="usertask1" name="重新填报" activiti:assignee="${userId}"></userTask>
-    <sequenceFlow id="countyLeaderDisagree" name="拒绝" sourceRef="countyGateway" targetRef="usertask1"></sequenceFlow>
+    <exclusiveGateway id="exclusivegateway1" name="Exclusive Gateway"></exclusiveGateway>
+    <sequenceFlow id="flow5" sourceRef="county_leader" targetRef="exclusivegateway1"></sequenceFlow>
+    <exclusiveGateway id="exclusivegateway2" name="Exclusive Gateway"></exclusiveGateway>
+    <sequenceFlow id="flow6" sourceRef="city_leader_audit" targetRef="exclusivegateway2"></sequenceFlow>
+    <exclusiveGateway id="exclusivegateway3" name="Exclusive Gateway"></exclusiveGateway>
+    <sequenceFlow id="flow7" sourceRef="province_leader" targetRef="exclusivegateway3"></sequenceFlow>
+    <sequenceFlow id="provinceLeaderAgress" name="同意" sourceRef="exclusivegateway3" targetRef="endevent1"></sequenceFlow>
+    <sequenceFlow id="cityLeaderAgree" name="同意" sourceRef="exclusivegateway2" targetRef="province_leader"></sequenceFlow>
+    <sequenceFlow id="countyLeaderAgress" name="同意" sourceRef="exclusivegateway1" targetRef="city_leader_audit"></sequenceFlow>
+    <userTask id="usertask1" name="重新填报"></userTask>
+    <sequenceFlow id="countyLeaderDisagree" name="拒绝" sourceRef="exclusivegateway1" targetRef="usertask1"></sequenceFlow>
     <sequenceFlow id="reReport" name="重新上报" sourceRef="exclusivegateway4" targetRef="county_leader"></sequenceFlow>
-    <sequenceFlow id="cityLeaderDisagress" name="拒绝" sourceRef="cityGateway" targetRef="usertask1"></sequenceFlow>
+    <sequenceFlow id="cityLeaderDisagress" name="拒绝" sourceRef="exclusivegateway2" targetRef="usertask1"></sequenceFlow>
     <exclusiveGateway id="exclusivegateway4" name="Exclusive Gateway"></exclusiveGateway>
     <sequenceFlow id="flow14" sourceRef="usertask1" targetRef="exclusivegateway4"></sequenceFlow>
     <sequenceFlow id="endProcess" name="结束流程" sourceRef="exclusivegateway4" targetRef="endevent1"></sequenceFlow>
-    <sequenceFlow id="provinceLeaderDisagree" name="拒绝" sourceRef="provinceGateway" targetRef="usertask1"></sequenceFlow>
+    <sequenceFlow id="provinceLeaderDisagree" name="拒绝" sourceRef="exclusivegateway3" targetRef="usertask1"></sequenceFlow>
   </process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_ReportAudit">
     <bpmndi:BPMNPlane bpmnElement="ReportAudit" id="BPMNPlane_ReportAudit">
@@ -46,13 +46,13 @@
       <bpmndi:BPMNShape bpmnElement="endevent1" id="BPMNShape_endevent1">
         <omgdc:Bounds height="35.0" width="35.0" x="990.0" y="90.0"></omgdc:Bounds>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="countyGateway" id="BPMNShape_countyGateway">
+      <bpmndi:BPMNShape bpmnElement="exclusivegateway1" id="BPMNShape_exclusivegateway1">
         <omgdc:Bounds height="40.0" width="40.0" x="402.0" y="88.0"></omgdc:Bounds>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="cityGateway" id="BPMNShape_cityGateway">
+      <bpmndi:BPMNShape bpmnElement="exclusivegateway2" id="BPMNShape_exclusivegateway2">
         <omgdc:Bounds height="40.0" width="40.0" x="642.0" y="88.0"></omgdc:Bounds>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="provinceGateway" id="BPMNShape_provinceGateway">
+      <bpmndi:BPMNShape bpmnElement="exclusivegateway3" id="BPMNShape_exclusivegateway3">
         <omgdc:Bounds height="40.0" width="40.0" x="888.0" y="88.0"></omgdc:Bounds>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape bpmnElement="usertask1" id="BPMNShape_usertask1">

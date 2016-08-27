@@ -46,7 +46,7 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 	private ProcessEngine processEngine;
 
 	private Logger logger = LoggerFactory.getLogger(ActivitiDemo.class);
-	private String bpmName = "ReportAudit";
+	private String bpmName = "projectReport";
 
 	@Before
 	public void setup() {
