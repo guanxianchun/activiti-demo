@@ -6,17 +6,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipInputStream;
 
 import org.activiti.bpmn.model.BpmnModel;
+import org.activiti.engine.FormService;
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
+import org.activiti.engine.form.FormProperty;
+import org.activiti.engine.form.TaskFormData;
+import org.activiti.engine.history.HistoricDetail;
+import org.activiti.engine.history.HistoricFormProperty;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricProcessInstanceQuery;
+import org.activiti.engine.history.HistoricVariableUpdate;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.repository.ProcessDefinitionQuery;
 import org.activiti.engine.runtime.ProcessInstance;
@@ -72,6 +79,7 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 		this.createFinishedProcessInstanceQuery();
 		System.out.println("-----------------------------");
 		this.createUnFinishedProcessInstanceQuery();
+		System.out.println("--------------------读取历史变量---------------------------------");
 		
 	}
 	
@@ -105,12 +113,22 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 	// @Test
 	public void startWorkflow() {
 		System.out.println("------------------------------------------------------");
-		RuntimeService service = processEngine.getRuntimeService();
-		Map<String, Object> variables = new HashMap<String, Object>();
-		variables.put("projectReportId", "2016-5-3");
+		FormService service = processEngine.getFormService();
+		Map<String, String> variables = new HashMap<String, String>();
+		variables.put("id", "1");
 		variables.put("userId", "test4");
+		variables.put("wasteTransNum", "2.3");
+		variables.put("landfillHandler", "3.3");
+		variables.put("compostHandler", "4.3");
+		variables.put("burnHandler", "5.3");
+		variables.put("harmlessHandler", "6.3");
+		variables.put("transOutsideHarmlessHandler", "7.3");
+		variables.put("rualWasteHandler", "12.3");
+		variables.put("outsideWasteHandler", "22.3");
+		variables.put("comprehensiveHandler", "12.3");
 		System.out.println("start workflow by " + variables.get("userId"));
-		ProcessInstance instance = service.startProcessInstanceByKey(bpmName, variables);
+		ProcessDefinition processDefinition = processEngine.getRepositoryService().createProcessDefinitionQuery().processDefinitionKey(bpmName).singleResult();
+		ProcessInstance instance = service.submitStartFormData(processDefinition.getId(), variables);
 		Assert.assertNotNull(instance);
 		System.out.println("user\tproInsId\tdeployId");
 		System.out.println(variables.get("userId") + "\t" + instance.getId() + "\tpdid:"
@@ -136,17 +154,29 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 		System.out.println(userId + "处理任务");
 		System.out.println("taskId\ttaskName\tinstanceId\tpdId");
 		for (Task task : tasks) {
-			Map<String, Object> variables = new HashMap<String, Object>();
-			variables.put("approved", true);
-			taskService.complete(task.getId(), variables);
+			this.readFormData(task.getId());
+			Map<String, String> variables = new HashMap<String, String>();
+			variables.put("approve", "true");
+			processEngine.getFormService().submitTaskFormData(task.getId(), variables);
 			System.out.println(task.getId() + "\t" + task.getName() + "\t" + task.getProcessInstanceId() + "\t"
 					+ task.getProcessDefinitionId());
 			String fileName = userId + "_deal_with_task+" + task.getId();
 			if (userId != "jackchen") {
-				this.readWorkflowPicture(task.getProcessDefinitionId(), task.getProcessInstanceId(), fileName);
+				try {
+					if (variables.get("approve")=="false") {
+						this.readWorkflowPicture(task.getProcessDefinitionId(), task.getProcessInstanceId(), fileName);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
 			}
-
+			if (variables.get("approve")=="false") {
+				this.readPackageVariables(task.getProcessInstanceId());
+			}
+			
 		}
+		
 	}
 
 	public InputStream getDiagram(String processInstanceId) {
@@ -166,7 +196,7 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 
 	// @Test
 	public void processTask() {
-		this.processTask("designer");
+//		this.processTask("designer");
 		this.processTask("admin");
 	}
 
@@ -188,19 +218,19 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 			System.out.println(id);
 		}
 		InputStream in = this.getDiagram(instanceId);
-		productImage(in);
+		productImage(in,fileName);
 
 	}
 
-	private void productImage(InputStream inputStream) {
+	private void productImage(InputStream inputStream,String fileName) {
 		FileOutputStream out = null;
-		File picture = new File("src/test/java/report_audit" + ".png");
+		File picture = new File("src/test/java/"+fileName + ".png");
 		try {
 			byte[] data = new byte[inputStream.available()];
 			out = new FileOutputStream(picture);
 			inputStream.read(data);
 			out.write(data);
-			System.out.println(new sun.misc.BASE64Encoder().encode(data));
+//			System.out.println(new sun.misc.BASE64Encoder().encode(data));
 		} catch (Exception e) {
 			// TODO: handle exception
 		} finally {
@@ -244,5 +274,43 @@ public class ActivitiDemo extends AbstractTransactionalJUnit4SpringContextTests 
 			}
 		}
 
+	}
+	
+	private Map<String, Object> readPackageVariables(String instanceId) {
+		System.out.println("--------------------读取历史变量---------------------------------");
+		Map<String, Object> historyVariables = new HashMap<String, Object>();
+		List<HistoricDetail> list = processEngine.getHistoryService().createHistoricDetailQuery().processInstanceId(instanceId).list();
+		for(HistoricDetail detail:list){
+			if(detail instanceof HistoricFormProperty){
+				HistoricFormProperty field = (HistoricFormProperty) detail;
+				historyVariables.put(field.getPropertyId(), field.getPropertyValue());
+				System.out.println("form field : taskId="+field.getTaskId()+"\t"+field.getPropertyId()+"="+field.getPropertyValue());
+			}else if (detail instanceof HistoricVariableUpdate) {
+				HistoricVariableUpdate variable = (HistoricVariableUpdate) detail;
+				historyVariables.put(variable.getVariableName(), variable.getValue());
+				System.out.println("variable :"+variable.getVariableName()+"="+variable.getValue());
+			}
+		}
+		this.printData(historyVariables);
+		return historyVariables;
+	}
+	
+	private Map<String, Object> readFormData(String taskId) {
+		System.out.println("----------------------------读取表单数据----------------------------------------");
+		TaskFormData formData = processEngine.getFormService().getTaskFormData(taskId);
+		List<FormProperty> formProperties = formData.getFormProperties();
+		Map<String, Object> formValue = new HashMap<String, Object>();
+		for(FormProperty property:formProperties){
+			formValue.put(property.getId(), property.getValue());
+		}
+		this.printData(formValue);
+		return formValue;
+	}
+	
+	private void printData(Map<String, Object> datas) {
+		System.out.println("---------------------------------打印输出---------------------------------------");
+		for(String name:datas.keySet()){
+			System.out.println(name+"="+datas.get(name));
+		}
 	}
 }
